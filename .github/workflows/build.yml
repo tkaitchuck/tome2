@@ -1,0 +1,24 @@
+name: CI
+on:
+  - push
+  - pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - run: sudo apt-get update && sudo apt-get install libboost-all-dev
+
+      - run: mkdir build
+
+      - name: cmake
+        working-directory: build/
+        run: cmake ..
+
+      - name: build
+        working-directory: build/
+        run: make VERBOSE=1

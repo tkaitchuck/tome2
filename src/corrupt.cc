@@ -1,5 +1,6 @@
 #include "corrupt.hpp"
 
+#include "format_ext.hpp"
 #include "game.hpp"
 #include "init1.hpp"
 #include "object_flag.hpp"
@@ -925,7 +926,8 @@ void lose_corruption()
  */
 std::string dump_corruptions(bool color, bool header)
 {
-	fmt::MemoryWriter w;
+	fmt::memory_buffer wbuf;
+	fmt::writer w(wbuf);
 
 	for (int i = 0; i < CORRUPTIONS_MAX; i++)
 	{
@@ -933,7 +935,7 @@ std::string dump_corruptions(bool color, bool header)
 
 		if (header)
 		{
-			w.write("\nCorruption list:\n\n");
+			w.print("\nCorruption list:\n\n");
 			header = false;
 		}
 
@@ -943,18 +945,18 @@ std::string dump_corruptions(bool color, bool header)
 
 			if (color)
 			{
-				w.write("#####{}{}:\n", static_cast<char>(conv_color[c]), c_ptr->name);
+				w.print("#####{}{}:\n", static_cast<char>(conv_color[c]), c_ptr->name);
 			}
 			else
 			{
-				w.write("{}:\n", c_ptr->name);
+				w.print("{}:\n", c_ptr->name);
 			}
 
-			w.write("{}\n\n", c_ptr->desc);
+			w.print("{}\n\n", c_ptr->desc);
 		}
 	}
 
-	return w.str();
+	return fmt::to_string(std::move(wbuf));
 }
 
 /*
