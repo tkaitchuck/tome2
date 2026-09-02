@@ -13,6 +13,7 @@
 #include "cave_type.hpp"
 #include "corrupt.hpp"
 #include "dungeon_flag.hpp"
+#include "format_ext.hpp"
 #include "game.hpp"
 #include "lua_bind.hpp"
 #include "monster2.hpp"
@@ -1879,7 +1880,8 @@ bool is_ok_spell(s32b spell_idx, s32b pval)
 	}
 	// Are we permitted to cast based on item pval? Only music
 	// spells have non-zero minimum PVAL.
-	if (pval < spell_type_minimum_pval(spell))
+	s32b min_pval = spell_type_minimum_pval(spell);
+	if (min_pval > 0 && pval < min_pval)
 	{
 		return false;
 	}

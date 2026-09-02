@@ -15,3 +15,5 @@ compile_commands.json
 /build
 tome2.cbp
 *.swp
+/.ccls-cache/
+/_deps

@@ -4,6 +4,8 @@
 #include "dungeon_flag_set.hpp"
 #include <cstdio>
 
+#include <cstdio>
+
 int color_char_to_attr(char c);
 extern byte conv_color[16];
 errr init_player_info_txt(FILE *fp);

@@ -5,6 +5,7 @@
 #include "dungeon_info_type.hpp"
 #include "feature_flag.hpp"
 #include "feature_type.hpp"
+#include "format_ext.hpp"
 #include "game.hpp"
 #include "hook_chardump_in.hpp"
 #include "hook_get_in.hpp"
@@ -282,18 +283,19 @@ static std::string make_directions(bool feel_it)
 
 std::string quest_god_describe()
 {
-	fmt::MemoryWriter w;
+	fmt::memory_buffer wbuf;
+	fmt::writer w(wbuf);
 
 	if (cquest.status == QUEST_STATUS_TAKEN)
 	{
 		auto directions = make_directions(false);
-		w.write("#####yGod quest {}!\n", cquest_quests_given);
-		w.write("Thou art to find the lost temple of thy God and\n");
-		w.write("to retrieve the lost part of the relic for thy God!\n");
-		w.write("{}", directions.c_str());
+		w.print("#####yGod quest {}!\n", cquest_quests_given);
+		w.print("Thou art to find the lost temple of thy God and\n");
+		w.print("to retrieve the lost part of the relic for thy God!\n");
+		w.print("{}", directions.c_str());
 	}
 
-	return w.str();
+	return fmt::to_string(std::move(wbuf));
 }
 
 static void quest_god_place_rand_dung()
