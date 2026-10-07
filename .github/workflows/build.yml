@@ -22,3 +22,56 @@ jobs:
       - name: build
         working-directory: build/
         run: make VERBOSE=1
+
+  # Debug build enables ASAN/UBSAN/_GLIBCXX_DEBUG (see CMakeLists.txt) and
+  # runs the test harness under them.
+  sanitizers:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: sudo apt-get update && sudo apt-get install libboost-all-dev
+
+      - name: cmake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: build
+        run: cmake --build build --parallel
+
+      - name: test
+        working-directory: build/
+        run: ctest --output-on-failure
+
+  # Static analysis: informational only, never fails the build.
+  static-analysis:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: sudo apt-get update && sudo apt-get install libboost-all-dev clang-tidy cppcheck
+
+      - name: cmake
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Debug
+
+      - name: clang-tidy
+        continue-on-error: true
+        run: |
+          find src -name '*.cc' | xargs -P"$(nproc)" -n1 \
+            clang-tidy -p build --quiet 2>&1 | tee clang-tidy.log || true
+
+      - name: cppcheck
+        continue-on-error: true
+        run: |
+          cppcheck --project=build/compile_commands.json \
+            --enable=warning --suppress='*:*/_deps/*' \
+            --suppress='*:*/vendor/*' --inline-suppr --quiet 2>&1 | tee cppcheck.log || true
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: static-analysis
+          path: |
+            clang-tidy.log
+            cppcheck.log

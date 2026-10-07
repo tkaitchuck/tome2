@@ -182,6 +182,14 @@ IF(GTK2_FOUND)
   INSTALL(TARGETS tome-gtk2 RUNTIME DESTINATION bin)
 ENDIF()
 
+# Files that must compile warning-free (-Werror). Add files as you touch them.
+SET(WERROR_SOURCES
+)
+FOREACH(f ${WERROR_SOURCES})
+  SET_SOURCE_FILES_PROPERTIES(${f} PROPERTIES COMPILE_OPTIONS "-Werror")
+ENDFOREACH()
+
 # test harness executable
 ADD_EXECUTABLE(harness ${SRCS_TESTS})
 TARGET_LINK_LIBRARIES(harness game squelch ${LIBS})
+ADD_TEST(NAME harness COMMAND harness WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
