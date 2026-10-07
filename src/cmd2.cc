@@ -56,6 +56,7 @@
 #include "z-rand.hpp"
 #include "z-term.hpp"
 
+#include "tome/safe_string.hpp"
 #include <chrono>
 #include <fmt/format.h>
 #include <thread>
@@ -3923,7 +3924,7 @@ std::vector<s16b> show_monster_inven(int m_idx)
 		out_color[i] = tval_to_attr[o_ptr->tval & 0x7F];
 
 		/* Save the object description */
-		strcpy(out_desc[i], o_name);
+		copy_str(out_desc[i], o_name);
 
 		/* Find the predicted "line length" */
 		int l = strlen(out_desc[i]) + 5;

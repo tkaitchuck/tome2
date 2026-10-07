@@ -40,6 +40,7 @@
 #include "xtra1.hpp"
 #include "z-form.hpp"
 #include "z-rand.hpp"
+#include "tome/plural.hpp"
 
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
@@ -3237,95 +3238,6 @@ static void do_cmd_knowledge_uniques()
 }
 
 
-static void plural_aux(char *name)
-{
-	int name_len = strlen(name);
-
-	/* Hack -- Precedent must be pluralised for this one */
-	if (strstr(name, "Disembodied hand"))
-	{
-		strcpy(name, "Disembodied hands that strangled people");
-	}
-
-	/* "someone of something" */
-	else if (strstr(name, " of "))
-	{
-		const char *aider = strstr(name, " of ");
-		char dummy[80];
-		int i = 0;
-		const char *ctr = name;
-
-		while (ctr < aider)
-		{
-			dummy[i] = *ctr;
-			ctr++;
-			i++;
-		}
-
-		if (dummy[i - 1] == 's')
-		{
-			strcpy(&dummy[i], "es");
-			i++;
-		}
-		else
-		{
-			strcpy(&dummy[i], "s");
-		}
-
-		strcpy(&dummy[i + 1], aider);
-		strcpy(name, dummy);
-	}
-
-	/* Creeping coins */
-	else if (strstr(name, "coins"))
-	{
-		char dummy[80];
-		strcpy(dummy, "piles of ");
-		strcat(dummy, name);
-		strcpy(name, dummy);
-		return;
-	}
-
-	/* Manes stay manes */
-	else if (strstr(name, "Manes"))
-	{
-		return;
-	}
-
-	/* Broken plurals are, well, broken */
-	else if (name_len >= 1 && name[name_len - 1] == 'y')
-	{
-		strcpy(&name[name_len - 1], "ies");
-	}
-	else if (name_len >= 4 && equals(&name[name_len - 4], "ouse"))
-	{
-		strcpy(&name[name_len - 4], "ice");
-	}
-	else if (name_len >= 6 && equals(&name[name_len - 6], "kelman"))
-	{
-		strcpy(&name[name_len - 6], "kelmen");
-	}
-	else if (name_len >= 2 && equals(&name[name_len - 2], "ex"))
-	{
-		strcpy(&name[name_len - 2], "ices");
-	}
-	else if (name_len >= 3 && equals(&name[name_len - 3], "olf"))
-	{
-		strcpy(&name[name_len - 3], "olves");
-	}
-
-	/* Now begins sane cases */
-	else if ((name_len >= 2 && equals(&name[name_len - 2], "ch")) || (name_len >= 1 && name[name_len - 1] == 's'))
-	{
-		strcpy(&name[name_len], "es");
-	}
-	else
-	{
-		strcpy(&name[name_len], "s");
-	}
-}
-
-
 /*
  * Display current pets
  */
@@ -3472,9 +3384,7 @@ static void do_cmd_knowledge_kill_count()
 				}
 				else
 				{
-					char to_plural[80];
-					strcpy(to_plural, r_ptr->name);
-					plural_aux(to_plural);
+					auto const to_plural = pluralize_monster_name(r_ptr->name);
 					w.print("     {} {}\n", This, to_plural);
 				}
 

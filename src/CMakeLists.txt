@@ -129,6 +129,8 @@ SET(SRCS_TESTS
   ../tests/lua_get_level.cc
   ../tests/flag_set.cc
   ../tests/grid.cc
+  ../tests/plural.cc
+  ../tests/safe_string.cc
 )
 
 ADD_LIBRARY(game

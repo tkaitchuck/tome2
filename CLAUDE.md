@@ -4,7 +4,8 @@ See `ROBUSTNESS_PLAN.md` for the rationale.
 
 - No new raw C arrays indexed by game IDs without a bounds check
   (prefer `std::array`/`std::vector`, `.at()` where cheap).
-- No new `sprintf`/`strcpy`/`strcat`; use `fmt::format` (or `snprintf`).
+- No new `sprintf`/`strcpy`/`strcat`; use `fmt::format`, or the bounded
+  helpers in `tome/safe_string.hpp` (`copy_str`, `append_str`, `TOME_SNPRINTF`).
 - No new raw `new`/`delete`; use `std::unique_ptr` / containers.
 - Use `ASSERT()` from `tome/assert.hpp` (active in Release, unlike
   `assert()`) for invariants at module boundaries.
