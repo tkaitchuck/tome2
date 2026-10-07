@@ -44,6 +44,16 @@ SET(CMAKE_CXX_FLAGS_RELEASE "-O2")
 SET(CMAKE_CXX_FLAGS_DEBUG   "-O0 -g ${SANITIZER_FLAGS} -D_GLIBCXX_DEBUG -D_GLIBCXX_DEBUG_PEDANTIC")
 
 #
+# -Werror, opt-in per source file. Add files you touch to WERROR_SOURCES in
+# src/CMakeLists.txt so warnings stop regressing without a repo-wide cleanup.
+#
+
+#
+# Testing: `ctest` runs the bandit harness.
+#
+ENABLE_TESTING()
+
+#
 # GCC Flags
 #
 IF(CMAKE_COMPILER_IS_GNUCC)
@@ -73,6 +83,9 @@ ELSE()
 	# https://github.com/danielaparker/jsoncons/commit/84b904cb87bfc6ed5144e014e4f9d1573e6151a2
 	SET(LIBS ${LIBS} jsoncons)
 ENDIF()
+
+# Export compile_commands.json for clang-tidy / cppcheck.
+SET(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Add standard math library
 SET(LIBS ${LIBS} m)

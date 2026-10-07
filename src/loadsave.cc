@@ -37,7 +37,7 @@
 #include "z-rand.hpp"
 
 #include <boost/filesystem.hpp>
-#include <cassert>
+#include "tome/assert.hpp"
 #include <fcntl.h>
 #include <fmt/format.h>
 #include <memory>
@@ -2066,7 +2066,7 @@ static void do_stores(ls_flag_t flag)
 	/* Read the stores */
 	u16b n_stores = st_info.size();
 	do_u16b(&n_stores, flag);
-	assert(n_stores <= st_info.size());
+	ASSERT(n_stores <= st_info.size());
 
 	for (auto const z: reals)
 	{
