@@ -1,5 +1,7 @@
 #include "loadsave.hpp"
 
+#include "savefile_io.hpp"
+
 #include "artifact_type.hpp"
 #include "birth.hpp"
 #include "cave_type.hpp"
@@ -45,7 +47,9 @@
 namespace fs = boost::filesystem;
 
 static u32b vernum; /* Version flag */
-static FILE *fff; 	/* Local savefile ptr */
+using namespace savefile_io;
+
+static FILE *&fff = savefile_io::file(); /* Local savefile ptr */
 
 /*
  * Show information on the screen, one line at a time.
@@ -66,13 +70,9 @@ static void note(const char *msg)
 	Term_fresh();
 }
 
-/**
- * Load/save flag
- */
-enum class ls_flag_t {
-	LOAD = 3,
-	SAVE = 7
-};
+/* Route non-fatal savefile warnings (see savefile_io.hpp) to note(). */
+[[maybe_unused]] static bool const note_hook_registered =
+	(savefile_io::warn_hook() = &note, true);
 
 /**
  * Structure for loading/saving option values
@@ -86,188 +86,6 @@ struct option_value {
 
 } // namespace (anonymous)
 
-
-/*
- * Basic byte-level reading from savefile.
- */
-static byte sf_get()
-{
-	byte c;
-
-	/* Get a character, decode the value */
-	c = getc(fff) & 0xFF;
-
-	/* Return the value */
-	return (c);
-}
-
-
-static void sf_put(byte v)
-{
-	putc((int)v, fff);
-}
-
-/*
- * Size-aware read/write routines for the savefile, do all their
- * work through sf_get and sf_put.
- */
-static void do_byte(byte *v, ls_flag_t flag)
-{
-	switch (flag)
-	{
-	case ls_flag_t::LOAD:
-	{
-		*v = sf_get();
-		return;
-	}
-	case ls_flag_t::SAVE:
-	{
-		byte val = *v;
-		sf_put(val);
-		return;
-	}
-	}
-}
-
-static void do_char(char *c, ls_flag_t flag)
-{
-	do_byte((byte *) c, flag);
-}
-
-static void do_std_bool(bool *x, ls_flag_t flag)
-{
-	switch (flag)
-	{
-	case ls_flag_t::LOAD:
-	{
-		*x = (sf_get() != 0);
-		return;
-	}
-	case ls_flag_t::SAVE:
-	{
-		byte val = (*x) ? 1 : 0;
-		sf_put(val);
-		return;
-	}
-	}
-}
-
-static void do_u16b(u16b *v, ls_flag_t flag)
-{
-	switch (flag)
-	{
-	case ls_flag_t::LOAD:
-	{
-		(*v) = sf_get();
-		(*v) |= ((u16b)(sf_get()) << 8);
-		return;
-	}
-	case ls_flag_t::SAVE:
-	{
-		u16b val;
-		val = *v;
-		sf_put((byte)(val & 0xFF));
-		sf_put((byte)((val >> 8) & 0xFF));
-		return;
-	}
-	}
-}
-
-static void do_s16b(s16b *ip, ls_flag_t flag)
-{
-	do_u16b((u16b *)ip, flag);
-}
-
-static void do_u32b(u32b *ip, ls_flag_t flag)
-{
-	switch(flag)
-	{
-	case ls_flag_t::LOAD:
-	{
-		(*ip) = sf_get();
-		(*ip) |= ((u32b)(sf_get()) << 8);
-		(*ip) |= ((u32b)(sf_get()) << 16);
-		(*ip) |= ((u32b)(sf_get()) << 24);
-		return;
-	}
-	case ls_flag_t::SAVE:
-	{
-		u32b val = *ip;
-		sf_put((byte)(val & 0xFF));
-		sf_put((byte)((val >> 8) & 0xFF));
-		sf_put((byte)((val >> 16) & 0xFF));
-		sf_put((byte)((val >> 24) & 0xFF));
-		return;
-	}
-	}
-}
-
-static void do_s32b(s32b *ip, ls_flag_t flag)
-{
-	do_u32b((u32b *)ip, flag);
-}
-
-static void do_int(int *sz, ls_flag_t flag)
-{
-	u32b x;
-
-	if (flag == ls_flag_t::SAVE)
-	{
-		x = *sz;
-	}
-
-	do_u32b(&x, flag);
-
-	if (flag == ls_flag_t::LOAD)
-	{
-		*sz = x;
-	}
-}
-
-static void save_std_string(std::string const *s)
-{
-	// Length prefix.
-	u32b saved_size = s->size();
-	do_u32b(&saved_size, ls_flag_t::SAVE);
-	// Save each character
-	for (auto c: *s)
-	{
-		sf_put(c);
-	}
-}
-
-static std::string load_std_string()
-{
-	// Length prefix.
-	u32b saved_size;
-	do_u32b(&saved_size, ls_flag_t::LOAD);
-	// Convert to size_t
-	std::size_t n = saved_size;
-	// Make sure we reserve space rather than resizing as we go.
-	std::string s;
-	s.reserve(n);
-	// Read each character
-	for (std::size_t i = 0; i < n; i++)
-	{
-		s += sf_get();
-	}
-	// Done
-	return s;
-}
-
-
-static void do_std_string(std::string &s, ls_flag_t flag)
-{
-	switch (flag)
-	{
-	case ls_flag_t::LOAD:
-		s = load_std_string();
-		break;
-	case ls_flag_t::SAVE:
-		save_std_string(&s);
-		break;
-	}
-}
 
 static void do_option_value(option_value *option_value, ls_flag_t flag)
 {
@@ -289,145 +107,6 @@ template<std::size_t Tiers> void do_flag_set(flag_set<Tiers> *flags, ls_flag_t f
 	}
 }
 
-template<typename T, typename F> void do_vector(ls_flag_t flag, std::vector<T> &v, F f)
-{
-	u32b n = v.size();
-
-	do_u32b(&n, flag);
-
-	if (flag == ls_flag_t::LOAD)
-	{
-		v.clear(); // Make sure it's empty
-		v.reserve(n);
-		std::fill_n(std::back_inserter(v), n, T());
-	}
-
-	for (std::size_t i = 0; i < n; i++)
-	{
-		f(&v[i], flag);
-	}
-}
-
-template<typename A, typename F> void do_array(std::string const &what, ls_flag_t flag, A &array, std::size_t size, F f)
-{
-	// Save/load size.
-	u32b n = size;
-	do_u32b(&n, flag);
-
-	// Check that we don't overflow the array.
-	if (flag == ls_flag_t::LOAD)
-	{
-		if (n > size)
-		{
-			note(fmt::format("Too many {:s}: {:d} > {:d}! Game may act strangely or crash.", what, n, size).c_str());
-		}
-	}
-
-	// Load/save the contents of the array.
-	for (std::size_t i = 0; i < n; i++)
-	{
-		f(&array[i], flag);
-	}
-}
-
-template<typename M, typename FK, typename FV> void do_fixed_map(ls_flag_t flag, M &map, FK fk, FV fv)
-{
-	// Since our file format is currently quite inflexible, we'll
-	// have to prefix with the size of the map and store everything
-	// as key-value pairs.
-	u32b n = map.size();
-	do_u32b(&n, flag);
-
-	if (flag == ls_flag_t::LOAD)
-	{
-		// Read each of the n entries. We ignore data for keys
-		// which no longer exist. This is pretty common if e.g.
-		// game data gets removed.
-		for (std::size_t i = 0; i < n; i++)
-		{
-			// Read key
-			typename M::key_type key;
-			fk(&key, flag);
-			// If the key is present, we'll update the value
-			// by reading. Otherwise just read into a dummy
-			// value.
-			if (map.count(key))
-			{
-				fv(map.at(key), flag);
-			}
-			else
-			{
-				typename M::mapped_type v;
-				fv(v, flag);
-			}
-		}
-	}
-
-	if (flag == ls_flag_t::SAVE)
-	{
-		// Write each of the n entries.
-		for (auto &entry: map)
-		{
-			auto key = entry.first;
-			auto value = entry.second;
-			fk(&key, flag);
-			fv(value, flag);
-		}
-	}
-}
-
-template<typename S, typename F> void do_unordered_set(ls_flag_t flag, S &set, F f)
-{
-	// Since our file format is currently quite inflexible, we'll
-	// have to prefix with the size of the set.
-	u32b n = set.size();
-	do_u32b(&n, flag);
-
-	if (flag == ls_flag_t::LOAD)
-	{
-		// Read each of the n entries.
-		for (std::size_t i = 0; i < n; i++)
-		{
-			// Read entry
-			typename S::key_type key;
-			f(&key, flag);
-
-			// Insert into set
-			set.insert(key);
-		}
-	}
-
-	if (flag == ls_flag_t::SAVE)
-	{
-		// We must copy out the entries because the 'f' function
-		// takes a non-const argument (for loading) and the fact
-		// that iterating through the set only allows us 'const'
-		// access to the keys. (We could cast away the const, but
-		// that might lead to accidental UB; here the worst case
-		// is that 'f' modifies the keys and has no effect on the
-		// original set.)
-		std::vector<typename S::key_type> keys;
-		std::copy(
-			std::cbegin(set),
-			std::cend(set),
-			std::back_inserter(keys));
-
-		// Write each of the n entries.
-		for (auto &key: keys)
-		{
-			f(&key, flag);
-		}
-	}
-}
-
-static void do_bytes(ls_flag_t flag, std::uint8_t *buf, std::size_t n)
-{
-	for (std::size_t i = 0; i < n; i++)
-	{
-		do_byte(&buf[i], flag);
-	}
-};
-
 static void do_seed(seed_t *seed, ls_flag_t flag)
 {
 	uint8_t buf[seed_t::n_bytes];
@@ -442,40 +121,6 @@ static void do_seed(seed_t *seed, ls_flag_t flag)
 	if (flag == ls_flag_t::LOAD)
 	{
 		*seed = seed_t::from_bytes(buf);
-	}
-}
-
-template <typename T, typename F>
-static void do_boost_optional(boost::optional<T> &maybe_v, ls_flag_t flag, F f)
-{
-	if (flag == ls_flag_t::SAVE)
-	{
-		// Size
-		u32b n = maybe_v
-			? 1
-			: 0;
-		do_u32b(&n, flag);
-
-		// Value
-		if (maybe_v)
-		{
-			auto v = *maybe_v;
-			f(&v, flag);
-		}
-	}
-
-	if (flag == ls_flag_t::LOAD)
-	{
-		// Size
-		u32b n;
-		do_u32b(&n, flag);
-
-		// Value
-		while (n-- > 0)
-		{
-			maybe_v.emplace(); // Default-construct in place
-			f(&maybe_v.get(), flag);
-		}
 	}
 }
 

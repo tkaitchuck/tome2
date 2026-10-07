@@ -75,3 +75,24 @@ jobs:
           path: |
             clang-tidy.log
             cppcheck.log
+
+  # Short smoke run of the libFuzzer harness; longer runs belong in a
+  # scheduled/OSS-Fuzz setup.
+  fuzz:
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: sudo apt-get update && sudo apt-get install libboost-all-dev clang
+
+      - name: cmake
+        run: cmake -S . -B build-fuzz -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_C_COMPILER=clang -DCMAKE_BUILD_TYPE=Debug -DTOME_BUILD_FUZZERS=ON
+
+      - name: build
+        run: cmake --build build-fuzz --target savefile_io_fuzz --parallel
+
+      - name: fuzz (60s)
+        run: |
+          mkdir -p corpus
+          ./build-fuzz/src/savefile_io_fuzz corpus -max_total_time=60 -timeout=10
