@@ -16,6 +16,7 @@
 #include "z-rand.hpp"
 #include "z-term.hpp"
 
+#include "tome/safe_string.hpp"
 #include <algorithm>
 #include <array>
 #include <cassert>
@@ -429,10 +430,10 @@ int print_spell(const char *label_, byte color, int y, s32b s)
 
 	if (!na)
 	{
-		sprintf(level_str, "%3d", (int) level);
+		TOME_SNPRINTF(level_str, "%3d", (int) level);
 	}
 
-	sprintf(buf, "%s%-20s%-16s   %s %4d %3d%% %s",
+	TOME_SNPRINTF(buf, "%s%-20s%-16s   %s %4d %3d%% %s",
 		label,
 		spell_type_name(spell_at(s)),
 		sch_str.c_str(),
@@ -487,7 +488,7 @@ void lua_cast_school_spell(s32b s, bool no_cost)
 		if (get_mana(s) > get_power(s))
 		{
 			char buf[128];
-			sprintf(buf,
+			TOME_SNPRINTF(buf,
 				"You do not have enough %s, do you want to try anyway?",
 				get_power_name(s));
 

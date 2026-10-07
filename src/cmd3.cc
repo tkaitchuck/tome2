@@ -40,6 +40,7 @@
 #include "z-form.hpp"
 #include "z-rand.hpp"
 
+#include "tome/safe_string.hpp"
 #include <algorithm>
 #include <boost/algorithm/string/predicate.hpp>
 #include <cassert>
@@ -759,7 +760,7 @@ void do_cmd_inscribe()
 
 	/* Start with old inscription */
 	char out_val[80];
-	strcpy(out_val, o_ptr->inscription.c_str());
+	copy_str(out_val, o_ptr->inscription.c_str());
 
 	/* Get a new inscription (possibly empty) */
 	if (get_string("Inscription: ", out_val, sizeof(out_val)))
@@ -1404,7 +1405,7 @@ void do_cmd_query_symbol()
 		{
 			char mon_name[80];
 
-			strcpy(mon_name, r_ptr->name);
+			copy_str(mon_name, r_ptr->name);
 			strlower(mon_name);
 
 			if (!strstr(mon_name, temp)) continue;

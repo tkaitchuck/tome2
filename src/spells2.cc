@@ -48,6 +48,7 @@
 #include "z-form.hpp"
 #include "z-rand.hpp"
 
+#include "tome/safe_string.hpp"
 #include <boost/algorithm/string/predicate.hpp>
 #include <cassert>
 #include <chrono>
@@ -694,7 +695,7 @@ void alchemy()
 	if (!force)
 	{
 		/* Make a verification */
-		sprintf(out_val, "Really turn %s to gold? ", o_name);
+		TOME_SNPRINTF(out_val, "Really turn %s to gold? ", o_name);
 		if (!get_check(out_val))
 		{
 			return;
@@ -903,8 +904,8 @@ void report_magics()
 	for (k = 2, j = 0; j < i; j++)
 	{
 		/* Show the info */
-		sprintf( Dummy, "%s %s.", info[j],
-		         report_magic_durations[info2[j]] );
+		TOME_SNPRINTF(Dummy, "%s %s.", info[j],
+		         report_magic_durations[info2[j]]);
 		prt(Dummy, k++, 15);
 
 		/* Every 20 entries (lines 2 to 21), start over */
@@ -2084,7 +2085,7 @@ static void note_found_object(object_type *o_ptr)
 		object_desc(item_name, o_ptr, false, 0);
 
 		/* Build note and write */
-		sprintf(note, "Found The %s", item_name);
+		TOME_SNPRINTF(note, "Found The %s", item_name);
 		add_note(note, 'A');
 	}
 }

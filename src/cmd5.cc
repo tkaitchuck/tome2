@@ -45,6 +45,7 @@
 #include "z-form.hpp"
 #include "z-rand.hpp"
 
+#include "tome/safe_string.hpp"
 #include <boost/noncopyable.hpp>
 #include <boost/optional.hpp>
 #include <cassert>
@@ -141,7 +142,7 @@ static int print_book(s16b sval, s32b spell_idx, object_type *obj)
 			color = (get_mana(spell_idx) > get_power(spell_idx)) ? TERM_ORANGE : TERM_L_GREEN;
 		}
 
-		sprintf(label, "%c) ", 'a' + i);
+		TOME_SNPRINTF(label, "%c) ", 'a' + i);
 
 		y = print_spell(label, color, y, spell_idx);
 		i++;
@@ -1914,8 +1915,8 @@ s32b get_school_spell(const char *do_what, s16b force_book)
 	{
 		char buf2[40];
 		char buf3[40];
-		sprintf(buf2, "You have no book to %s from", do_what);
-		sprintf(buf3, "%s from which book?", do_what);
+		TOME_SNPRINTF(buf2, "You have no book to %s from", do_what);
+		TOME_SNPRINTF(buf3, "%s from which book?", do_what);
 
 		if (!get_item(&item,
 			      buf3,

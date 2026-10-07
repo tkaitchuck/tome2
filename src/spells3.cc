@@ -32,6 +32,7 @@
 #include "xtra2.hpp"
 #include "z-rand.hpp"
 
+#include "tome/safe_string.hpp"
 #include <algorithm>
 #include <cassert>
 #include <fmt/format.h>
@@ -1998,7 +1999,7 @@ void do_melkor_curse(int m_idx)
 		monster_desc(buf, m_ptr, 0);
 		buf[0] = toupper(buf[0]);
 
-		strcat(buf, " looks weaker.");
+		append_str(buf, " looks weaker.");
 		msg_print(buf);
 	}
 
@@ -2073,11 +2074,11 @@ casting_result melkor_mind_steal()
 		{
 			p_ptr->control = target_who;
 			m_ptr->mflag |= MFLAG_CONTROL;
-			strcat(buf, " falls under your control.");
+			append_str(buf, " falls under your control.");
 		}
 		else
 		{
-			strcat(buf, " resists.");
+			append_str(buf, " resists.");
 		}
 
 		msg_print(buf);
