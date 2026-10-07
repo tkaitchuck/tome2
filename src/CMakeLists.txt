@@ -131,6 +131,7 @@ SET(SRCS_TESTS
   ../tests/grid.cc
   ../tests/plural.cc
   ../tests/safe_string.cc
+  ../tests/savefile_io.cc
 )
 
 ADD_LIBRARY(game
@@ -195,3 +196,16 @@ ENDFOREACH()
 ADD_EXECUTABLE(harness ${SRCS_TESTS})
 TARGET_LINK_LIBRARIES(harness game squelch ${LIBS})
 ADD_TEST(NAME harness COMMAND harness WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
+# libFuzzer harness for the savefile primitives (clang only):
+#   cmake -DCMAKE_CXX_COMPILER=clang++ -DTOME_BUILD_FUZZERS=ON ..
+OPTION(TOME_BUILD_FUZZERS "Build libFuzzer harnesses (requires clang)" OFF)
+IF(TOME_BUILD_FUZZERS)
+  IF(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    MESSAGE(FATAL_ERROR "TOME_BUILD_FUZZERS requires clang")
+  ENDIF()
+  ADD_EXECUTABLE(savefile_io_fuzz ../tests/fuzz/savefile_io_fuzz.cc)
+  TARGET_COMPILE_OPTIONS(savefile_io_fuzz PRIVATE
+    -fsanitize=fuzzer-no-link,address,undefined -fno-omit-frame-pointer)
+  TARGET_LINK_OPTIONS(savefile_io_fuzz PRIVATE -fsanitize=fuzzer,address,undefined)
+ENDIF()
